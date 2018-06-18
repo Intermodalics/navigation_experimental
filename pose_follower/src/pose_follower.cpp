@@ -49,7 +49,7 @@ namespace pose_follower {
     goal_reached_time_ = ros::Time();
     ros::NodeHandle node_private("~/" + name);
 
-    collision_planner_.initialize(name, tf_, costmap_ros_);
+    collision_planner_.initialize(ros::names::append(name, "collision_planner"), tf_, costmap_ros_);
 
     node_private.param("k_trans", K_trans_, 2.0);
     node_private.param("k_rot", K_rot_, 2.0);
