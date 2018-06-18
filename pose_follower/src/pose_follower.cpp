@@ -46,7 +46,7 @@ namespace pose_follower {
     tf_ = tf;
     costmap_ros_ = costmap_ros;
     current_waypoint_ = 0;
-    goal_reached_time_ = ros::Time::now();
+    goal_reached_time_ = ros::Time();
     ros::NodeHandle node_private("~/" + name);
 
     collision_planner_.initialize(name, tf_, costmap_ros_);
@@ -109,8 +109,8 @@ namespace pose_follower {
     base_odom_.twist.twist.linear.x = msg->twist.twist.linear.x;
     base_odom_.twist.twist.linear.y = msg->twist.twist.linear.y;
     base_odom_.twist.twist.angular.z = msg->twist.twist.angular.z;
-    ROS_DEBUG("In the odometry callback with velocity values: (%.2f, %.2f, %.2f)",
-        base_odom_.twist.twist.linear.x, base_odom_.twist.twist.linear.y, base_odom_.twist.twist.angular.z);
+//     ROS_DEBUG("In the odometry callback with velocity values: (%.2f, %.2f, %.2f)",
+//         base_odom_.twist.twist.linear.x, base_odom_.twist.twist.linear.y, base_odom_.twist.twist.angular.z);
   }
 
   double PoseFollower::headingDiff(double x, double y, double pt_x, double pt_y, double heading)
@@ -196,7 +196,6 @@ namespace pose_follower {
     //if it is legal... we'll pass it on
     cmd_vel = test_vel;
 
-    bool in_goal_position = false;
     while(fabs(diff.linear.x) <= tolerance_trans_ &&
           fabs(diff.linear.y) <= tolerance_trans_ &&
 	  fabs(diff.angular.z) <= tolerance_rot_)
@@ -209,18 +208,17 @@ namespace pose_follower {
       }
       else
       {
-        ROS_INFO("Reached goal: %d", current_waypoint_);
-        in_goal_position = true;
+        if (goal_reached_time_.isZero()) {
+          ROS_INFO("Reached goal: %d", current_waypoint_);
+          goal_reached_time_ = ros::Time::now();
+        }
         break;
       }
     }
 
-    //if we're not in the goal position, we need to update time
-    if(!in_goal_position)
-      goal_reached_time_ = ros::Time::now();
-
     //check if we've reached our goal for long enough to succeed
-    if(goal_reached_time_ + ros::Duration(tolerance_timeout_) < ros::Time::now()){
+    if(!goal_reached_time_.isZero() &&
+       (goal_reached_time_ + ros::Duration(tolerance_timeout_) < ros::Time::now())){
       geometry_msgs::Twist empty_twist;
       cmd_vel = empty_twist;
     }
@@ -230,7 +228,7 @@ namespace pose_follower {
 
   bool PoseFollower::setPlan(const std::vector<geometry_msgs::PoseStamped>& global_plan){
     current_waypoint_ = 0;
-    goal_reached_time_ = ros::Time::now();
+    goal_reached_time_ = ros::Time();
     if(!transformGlobalPlan(*tf_, global_plan, *costmap_ros_, costmap_ros_->getGlobalFrameID(), global_plan_)){
       ROS_ERROR("Could not transform the global plan to the frame of the controller");
       return false;
@@ -239,7 +237,9 @@ namespace pose_follower {
   }
 
   bool PoseFollower::isGoalReached(){
-    if(goal_reached_time_ + ros::Duration(tolerance_timeout_) < ros::Time::now() && stopped()){
+    if(!goal_reached_time_.isZero() &&
+       (goal_reached_time_ + ros::Duration(tolerance_timeout_) < ros::Time::now()) &&
+       stopped()){
       return true;
     }
     return false;
