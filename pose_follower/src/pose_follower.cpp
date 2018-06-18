@@ -310,28 +310,30 @@ namespace pose_follower {
       return res;
     }
 
-    //make sure to bound things by our velocity limits
-    double lin_overshoot = sqrt(res.linear.x * res.linear.x + res.linear.y * res.linear.y) / max_vel_lin_;
     double lin_undershoot = min_vel_lin_ / sqrt(res.linear.x * res.linear.x + res.linear.y * res.linear.y);
-    if (lin_overshoot > 1.0) 
-    {
-      res.linear.x /= lin_overshoot;
-      res.linear.y /= lin_overshoot;
-    }
-
     //we only want to enforce a minimum velocity if we're not rotating in place
     if(lin_undershoot > 1.0)
     {
       res.linear.x *= lin_undershoot;
       res.linear.y *= lin_undershoot;
     }
+    //make sure to bound things by our velocity limits
+    double lin_overshoot = sqrt(res.linear.x * res.linear.x + res.linear.y * res.linear.y) / max_vel_lin_;
+    if (lin_overshoot > 1.0) 
+    {
+      res.linear.x /= lin_overshoot;
+      res.linear.y /= lin_overshoot;
+    }
 
-    if (fabs(res.angular.z) > max_vel_th_) res.angular.z = max_vel_th_ * sign(res.angular.z);
+
     if (fabs(res.angular.z) < min_vel_th_) res.angular.z = min_vel_th_ * sign(res.angular.z);
+    if (fabs(res.angular.z) > max_vel_th_) res.angular.z = max_vel_th_ * sign(res.angular.z);
     if (std::isnan(res.linear.x))
         res.linear.x = 0.0;
     if (std::isnan(res.linear.y))
-        res.linear.x = 0.0;
+        res.linear.y = 0.0;
+    if (std::isnan(res.angular.z))
+        res.angular.z = 0.0;
 
     //we want to check for whether or not we're desired to rotate in place
     if(sqrt(twist.linear.x * twist.linear.x + twist.linear.y * twist.linear.y) < in_place_trans_vel_){
