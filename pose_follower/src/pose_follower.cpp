@@ -305,6 +305,7 @@ namespace pose_follower {
     {
       res.linear.x = 0;
       res.linear.y = 0;
+      if (fabs(res.angular.z) > max_vel_th_) res.angular.z = max_vel_th_ * sign(res.angular.z);
       if (fabs(res.angular.z) < min_in_place_vel_th_) res.angular.z = min_in_place_vel_th_ * sign(res.angular.z);
       return res;
     }
