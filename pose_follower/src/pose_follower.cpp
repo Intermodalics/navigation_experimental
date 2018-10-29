@@ -354,7 +354,7 @@ namespace pose_follower {
     transformed_plan.clear();
 
     try{
-      if (!global_plan.size() > 0)
+      if (global_plan.empty())
       {
         ROS_ERROR("Recieved plan with zero length");
         return false;
