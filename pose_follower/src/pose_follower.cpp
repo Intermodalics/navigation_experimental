@@ -42,7 +42,7 @@ PLUGINLIB_DECLARE_CLASS(pose_follower, PoseFollower, pose_follower::PoseFollower
 namespace pose_follower {
   PoseFollower::PoseFollower(): tf_(NULL), costmap_ros_(NULL) {}
 
-  void PoseFollower::initialize(std::string name, tf::TransformListener* tf, costmap_2d::Costmap2DROS* costmap_ros){
+  void PoseFollower::initialize(std::string name, tf2_ros::Buffer* tf, costmap_2d::Costmap2DROS* costmap_ros){
     tf_ = tf;
     costmap_ros_ = costmap_ros;
     current_waypoint_ = 0;
@@ -144,7 +144,7 @@ namespace pose_follower {
 
   bool PoseFollower::computeVelocityCommands(geometry_msgs::Twist& cmd_vel){
     //get the current pose of the robot in the fixed frame
-    tf::Stamped<tf::Pose> robot_pose;
+    geometry_msgs::PoseStamped robot_pose;
     if(!costmap_ros_->getRobotPose(robot_pose)){
       ROS_ERROR("Can't get robot pose");
       geometry_msgs::Twist empty_twist;
@@ -153,8 +153,7 @@ namespace pose_follower {
     }
 
     //we want to compute a velocity command based on our current waypoint
-    tf::Stamped<tf::Pose> target_pose;
-    tf::poseStampedMsgToTF(global_plan_[current_waypoint_], target_pose);
+    const geometry_msgs::TransformStamped& target_pose = global_plan_[current_waypoint_];
 
     ROS_DEBUG("PoseFollower: current robot pose %f %f ==> %f", robot_pose.getOrigin().x(), robot_pose.getOrigin().y(), tf::getYaw(robot_pose.getRotation()));
     ROS_DEBUG("PoseFollower: target robot pose %f %f ==> %f", target_pose.getOrigin().x(), target_pose.getOrigin().y(), tf::getYaw(target_pose.getRotation()));
@@ -346,7 +345,7 @@ namespace pose_follower {
     return res;
   }
 
-  bool PoseFollower::transformGlobalPlan(const tf::TransformListener& tf, const std::vector<geometry_msgs::PoseStamped>& global_plan, 
+  bool PoseFollower::transformGlobalPlan(const tf2_ros::Buffer& tf, const std::vector<geometry_msgs::PoseStamped>& global_plan, 
       const costmap_2d::Costmap2DROS& costmap, const std::string& global_frame,
       std::vector<geometry_msgs::PoseStamped>& transformed_plan){
     const geometry_msgs::PoseStamped& plan_pose = global_plan[0];
@@ -360,12 +359,12 @@ namespace pose_follower {
         return false;
       }
 
-      tf::StampedTransform transform;
+      geometry_msgs::TransformStamped transform;
       tf.lookupTransform(global_frame, ros::Time(), 
           plan_pose.header.frame_id, plan_pose.header.stamp, 
           plan_pose.header.frame_id, transform);
 
-      tf::Stamped<tf::Pose> tf_pose;
+      tf2::Stamped<KDL::Frame> tf_pose;
       geometry_msgs::PoseStamped newer_pose;
       //now we'll transform until points are outside of our distance threshold
       for(unsigned int i = 0; i < global_plan.size(); ++i){

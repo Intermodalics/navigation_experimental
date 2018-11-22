@@ -51,7 +51,7 @@ namespace pose_follower {
   class PoseFollower : public nav_core::BaseLocalPlanner {
     public:
       PoseFollower();
-      void initialize(std::string name, tf::TransformListener* tf, costmap_2d::Costmap2DROS* costmap_ros);
+      void initialize(std::string name, tf2_ros::Buffer* tf, costmap_2d::Costmap2DROS* costmap_ros);
       bool isGoalReached();
       bool setPlan(const std::vector<geometry_msgs::PoseStamped>& global_plan);
       bool computeVelocityCommands(geometry_msgs::Twist& cmd_vel);
@@ -65,14 +65,14 @@ namespace pose_follower {
       geometry_msgs::Twist limitTwist(const geometry_msgs::Twist& twist);
       double headingDiff(double pt_x, double pt_y, double x, double y, double heading);
 
-      bool transformGlobalPlan(const tf::TransformListener& tf, const std::vector<geometry_msgs::PoseStamped>& global_plan, 
+      bool transformGlobalPlan(const tf2_ros::Buffer& tf, const std::vector<geometry_msgs::PoseStamped>& global_plan, 
           const costmap_2d::Costmap2DROS& costmap, const std::string& global_frame,
           std::vector<geometry_msgs::PoseStamped>& transformed_plan);
 
       void odomCallback(const nav_msgs::Odometry::ConstPtr& msg);
       bool stopped();
 
-      tf::TransformListener* tf_;
+      tf2_ros::Buffer* tf_;
       costmap_2d::Costmap2DROS* costmap_ros_;
       ros::Publisher vel_pub_;
       double K_trans_, K_rot_, tolerance_trans_, tolerance_rot_;
